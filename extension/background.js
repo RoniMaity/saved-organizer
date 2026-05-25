@@ -57,9 +57,24 @@ async function saveToMind(payload, tabId) {
     return;
   }
 
+  // Retrieve token from the localhost:3000 browser cookie directly
+  let token = "";
   try {
-    // Check local storage for synced token
-    const { token } = await chrome.storage.local.get("token");
+    const cookie = await new Promise((resolve) => {
+      chrome.cookies.get({ url: "http://localhost:3000", name: "token" }, resolve);
+    });
+    if (cookie) {
+      token = cookie.value;
+    } else {
+      // Fallback to storage
+      const storage = await chrome.storage.local.get("token");
+      token = storage.token || "";
+    }
+  } catch (cookieErr) {
+    console.warn("Error reading cookies or storage:", cookieErr);
+  }
+
+  try {
     const headers = {
       "Content-Type": "application/json",
     };
