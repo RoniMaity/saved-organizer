@@ -1,8 +1,8 @@
 // import 'dotenv/config'
 
-import OpenAI from "openai";
+import Groq from "groq-sdk";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function categorize(data) {
 const prompt = `
@@ -26,13 +26,14 @@ Output:
 Only the category name.
 `;
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await groq.chat.completions.create({
+      model: "llama3-8b-8192", // Groq's fast llama model
       messages: [{ role: "user", content: prompt }],
     });
 
-    return completion.choices[0].message.content;
-  } catch {
-    return { category: "Other", hashtags: [] };
+    return completion.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("Groq AI Error:", error);
+    return "Other";
   }
 }

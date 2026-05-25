@@ -1,6 +1,4 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import { Provider } from "@/components/ui/provider"
-
 
 import "./globals.css";
 
@@ -15,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Instagram Saved Organizer",
-  description: "Organize your Instagram saved posts effortlessly.",
+  title: "Unidrop - Minimalist Memory Hub",
+  description: "Cross-platform, minimalist memory hub organized by AI.",
 };
 
 export default function RootLayout({ children }) {
@@ -27,9 +25,9 @@ export default function RootLayout({ children }) {
         content="telephone=no, date=no, email=no, address=no"
       />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-on-surface`}
       >
-        <Provider>{children}</Provider>
+        {children}
       </body>
     </html>
   );
