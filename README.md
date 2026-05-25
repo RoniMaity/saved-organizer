@@ -4,7 +4,7 @@
 
 Unidrop is designed to be the ultimate, frictionless repository for your digital life. Whether it's a link, an image, a note, or an article, drop it here and let the system organize it for you. 
 
-## 🏗️ Hub and Spoke Architecture
+## Hub and Spoke Architecture
 
 Unidrop utilizes a "Hub and Spoke" architecture:
 - **The Hub (Central API):** A robust Next.js serverless API acts as the central brain. It handles authentication, data ingestion, database transactions, and AI processing.
@@ -15,7 +15,7 @@ Unidrop utilizes a "Hub and Spoke" architecture:
 
 Every Spoke talks to the same universal `/api/save` endpoint on the Hub.
 
-## 🤖 100% Automated Categorization (Zero Folders)
+## 100% Automated Categorization (Zero Folders)
 
 We believe manual organization is a waste of time. Unidrop uses zero manual folders. 
 When a link or text is saved, the system automatically:
@@ -25,7 +25,7 @@ When a link or text is saved, the system automatically:
 
 Your library is automatically sorted into intelligent "Collections" without you lifting a finger.
 
-## 💻 Tech Stack
+## Tech Stack
 
 - **Framework:** Next.js 15 (App Router)
 - **Styling:** Tailwind CSS + shadcn/ui
@@ -33,7 +33,7 @@ Your library is automatically sorted into intelligent "Collections" without you 
 - **Authentication:** Custom JWT with HttpOnly cookies
 - **AI / Scraping:** Grok API + Apify
 
-## 🚀 Getting Started
+## Getting Started
 
 1. Clone the repository and install dependencies:
    ```bash
@@ -50,5 +50,5 @@ Your library is automatically sorted into intelligent "Collections" without you 
    npm run dev
    ```
 
-## 🎨 Design Philosophy
+## Design Philosophy
 Unidrop follows a strictly minimalist aesthetic. The UI should be invisible until needed, ensuring the user's saved content remains the primary focus. We use generous whitespace, crisp Geist typography, and subtle glassmorphic effects to create a serene digital environment.
