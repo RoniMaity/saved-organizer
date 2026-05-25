@@ -17,6 +17,7 @@ export const metadata = {
   description: "Cross-platform, minimalist memory hub organized by AI.",
 };
 
+import { Suspense } from "react";
 import SideNav from "@/components/SideNav";
 
 export default function RootLayout({ children }) {
@@ -29,7 +30,9 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-on-surface`}
       >
-        <SideNav />
+        <Suspense fallback={null}>
+          <SideNav />
+        </Suspense>
         {children}
       </body>
     </html>

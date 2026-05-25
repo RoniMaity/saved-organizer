@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Layers, FileText, Settings, Hash, Search, Plus, Archive, Image as ImageIcon, Link2, User, X } from "lucide-react";
 
 export default function SideNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -53,7 +54,7 @@ export default function SideNav() {
         <div className="flex flex-col space-y-1">
           <Link 
             href="/dashboard"
-            className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${pathname === '/dashboard' ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-variant'}`}
+            className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${pathname === '/dashboard' && !searchParams.get('type') ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-variant'}`}
           >
             <Layers className="w-5 h-5" />
             <span className="text-sm font-medium">All Drops</span>
@@ -73,25 +74,11 @@ export default function SideNav() {
             <span className="text-sm font-medium">Notes</span>
           </Link>
           <Link 
-            href="/dashboard"
-            className="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-colors rounded-lg"
+            href="/dashboard?type=IMAGE"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${pathname === '/dashboard' && searchParams.get('type') === 'IMAGE' ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-variant'}`}
           >
             <ImageIcon className="w-5 h-5" />
-            <span className="text-sm font-medium">Images</span>
-          </Link>
-          <Link 
-            href="/dashboard"
-            className="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-colors rounded-lg"
-          >
-            <Link2 className="w-5 h-5" />
-            <span className="text-sm font-medium">Links</span>
-          </Link>
-          <Link 
-            href="/dashboard"
-            className="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-colors rounded-lg"
-          >
-            <Archive className="w-5 h-5" />
-            <span className="text-sm font-medium">Archive</span>
+            <span className="text-sm font-medium">Images & Videos</span>
           </Link>
           <Link 
             href="/settings"
@@ -100,15 +87,6 @@ export default function SideNav() {
             <Settings className="w-5 h-5" />
             <span className="text-sm font-medium">Settings</span>
           </Link>
-        </div>
-        <div className="mt-auto px-3 pt-6 border-t border-outline-variant/10">
-          <button 
-            className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-all shadow-sm hover:shadow active:scale-95"
-            onClick={() => setSearchOpen(true)}
-          >
-            <Search className="w-4 h-4" />
-            Search Archive
-          </button>
         </div>
       </nav>
 

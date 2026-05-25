@@ -32,6 +32,19 @@ export default async function CollectionsPage() {
     
     const uniqueTags = Array.from(tagsMap.entries()).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.count - a.count);
 
+    const getImageSrc = (src) => {
+      if (!src) return "";
+      if (
+        src.includes("instagram.com") || 
+        src.includes("cdninstagram.com") || 
+        src.includes("fbcdn.net") || 
+        src.includes("fbcdn")
+      ) {
+        return `/api/proxy-image?url=${encodeURIComponent(src)}`;
+      }
+      return src;
+    };
+
     return (
         <main className="md:ml-64 pt-32 pb-24 px-4 md:px-12 min-h-screen max-w-[1440px] mx-auto">
             <header className="mb-12 max-w-[1440px] mx-auto">
@@ -55,7 +68,7 @@ export default async function CollectionsPage() {
                                 {tag.items.slice(0, 4).map((item, i) => (
                                     <div key={i} className="overflow-hidden bg-surface-container-high h-full w-full relative">
                                         {item.imageUrl ? (
-                                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                            <img src={getImageSrc(item.imageUrl)} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center p-3 text-xs overflow-hidden text-on-surface-variant break-words text-center bg-surface-container-low group-hover:scale-105 transition-transform duration-700">
                                                 <span className="line-clamp-4">{item.title || item.content}</span>

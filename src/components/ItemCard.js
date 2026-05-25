@@ -2,10 +2,73 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Link2, FileText, Image as ImageIcon, X, Trash2, ExternalLink, Copy, Share } from "lucide-react";
+import { Link2, FileText, Image as ImageIcon, X, Trash2, ExternalLink, Copy, Share, Plus } from "lucide-react";
 
-export default function ItemCard({ item, isGhost }) {
+export default function ItemCard({ item, isGhost, token, onDelete, onUpdate }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [localTags, setLocalTags] = useState(item?.tags || []);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this memory drop?")) {
+      if (onDelete) {
+        await onDelete(item.id);
+        setModalOpen(false);
+      }
+    }
+  };
+
+  const handleRemoveTag = async (tagName) => {
+    const updatedNames = localTags.map(t => t.name).filter(name => name !== tagName);
+    try {
+      const res = await fetch("/api/save", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: item.id, tags: updatedNames })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLocalTags(data.post.tags || []);
+        if (onUpdate) onUpdate();
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddTagSubmit = async (e) => {
+    e.preventDefault();
+    const name = newTagInput.trim().toLowerCase();
+    if (name && !localTags.some(t => t.name === name)) {
+      const updatedNames = [...localTags.map(t => t.name), name];
+      try {
+        const res = await fetch("/api/save", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ id: item.id, tags: updatedNames })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLocalTags(data.post.tags || []);
+          if (onUpdate) onUpdate();
+        }
+      } catch(err) {
+        console.error(err);
+      }
+    }
+    setNewTagInput("");
+    setIsAddingTag(false);
+  };
+
   if (isGhost) {
     return (
       <div className="break-inside-avoid mb-4 inline-block w-full">
@@ -30,11 +93,11 @@ export default function ItemCard({ item, isGhost }) {
   
   // Tag rendering logic
   const renderTags = () => {
-    if (!item.tags || item.tags.length === 0) return null;
+    if (!localTags || localTags.length === 0) return null;
     return (
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface via-surface/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-wrap gap-2 justify-start items-end z-20">
-        {item.tags.map(tag => (
-          <span key={tag.id} className="px-3 py-1 bg-surface-container-low/80 backdrop-blur-md border border-outline-variant/50 rounded-full text-xs font-medium text-on-surface shadow-sm">
+        {localTags.map(tag => (
+          <span key={tag.id || tag.name} className="px-3 py-1 bg-surface-container-low/80 backdrop-blur-md border border-outline-variant/50 rounded-full text-xs font-medium text-on-surface shadow-sm">
             {tag.name}
           </span>
         ))}
@@ -42,7 +105,18 @@ export default function ItemCard({ item, isGhost }) {
     );
   };
 
-  const [copied, setCopied] = useState(false);
+  const getImageSrc = (src) => {
+    if (!src) return "";
+    if (
+      src.includes("instagram.com") || 
+      src.includes("cdninstagram.com") || 
+      src.includes("fbcdn.net") || 
+      src.includes("fbcdn")
+    ) {
+      return `/api/proxy-image?url=${encodeURIComponent(src)}`;
+    }
+    return src;
+  };
 
   const handleCopy = (e) => {
     e.stopPropagation();
@@ -64,7 +138,7 @@ export default function ItemCard({ item, isGhost }) {
           {mediaUrl ? (
             <div className="relative w-full aspect-video bg-surface-container-low">
               <img
-                src={mediaUrl}
+                src={getImageSrc(mediaUrl)}
                 alt={item.title || "Saved URL"}
                 className="w-full h-full object-cover"
               />
@@ -117,7 +191,7 @@ export default function ItemCard({ item, isGhost }) {
           className="relative bg-surface rounded-xl overflow-hidden border border-outline-variant/30 cursor-pointer group hover:scale-[1.02] hover:shadow-xl transition-all duration-300"
         >
            <img
-            src={mediaUrl || item.content}
+            src={getImageSrc(mediaUrl || item.content)}
             alt={item.title || "Saved Image"}
             className="w-full h-auto object-cover"
           />
@@ -170,13 +244,13 @@ export default function ItemCard({ item, isGhost }) {
               {type === "IMAGE" ? (
                 <img 
                   className="w-full h-full object-contain hover:scale-[1.02] transition-transform duration-1000 ease-out" 
-                  src={mediaUrl || item.content} 
+                  src={getImageSrc(mediaUrl || item.content)} 
                   alt={item.title || "Detail View"} 
                 />
               ) : mediaUrl ? (
                 <img 
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000 ease-out" 
-                  src={mediaUrl} 
+                  src={getImageSrc(mediaUrl)} 
                   alt={item.title || "Detail View"} 
                 />
               ) : (
@@ -225,12 +299,43 @@ export default function ItemCard({ item, isGhost }) {
                   {item.summary || (type === 'URL' ? 'A link saved to your archive without a generated summary.' : 'This memory drop was processed but no detailed summary was generated by the AI.')}
                 </p>
                 
-                <div className="flex flex-wrap gap-2 mb-12">
-                  {item.tags?.map(tag => (
-                    <span key={tag.id} className="px-4 py-1.5 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-medium hover:bg-primary hover:text-white transition-colors cursor-pointer">
-                      {tag.name}
+                <div className="flex flex-wrap gap-2 items-center mb-12">
+                  {localTags.map(tag => (
+                    <span key={tag.id || tag.name} className="px-3.5 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-xs font-medium flex items-center gap-1.5">
+                      #{tag.name}
+                      <button 
+                        onClick={() => handleRemoveTag(tag.name)} 
+                        className="text-on-surface-variant/40 hover:text-error transition-colors p-0.5 rounded-full"
+                        title="Remove tag"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </span>
                   ))}
+                  
+                  {isAddingTag ? (
+                    <form onSubmit={handleAddTagSubmit} className="inline-block">
+                      <input
+                        type="text"
+                        value={newTagInput}
+                        onChange={(e) => setNewTagInput(e.target.value)}
+                        placeholder="new tag..."
+                        className="px-3 py-1 bg-surface-container border border-outline-variant/30 rounded-full text-xs text-on-surface outline-none focus:border-primary max-w-[100px]"
+                        autoFocus
+                        onBlur={() => {
+                          setTimeout(() => setIsAddingTag(false), 200);
+                        }}
+                      />
+                    </form>
+                  ) : (
+                    <button 
+                      onClick={() => setIsAddingTag(true)} 
+                      className="px-3.5 py-1 border border-dashed border-outline-variant hover:border-primary hover:text-primary transition-all rounded-full text-xs font-medium text-on-surface-variant flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Tag
+                    </button>
+                  )}
                 </div>
               </section>
               
@@ -254,6 +359,15 @@ export default function ItemCard({ item, isGhost }) {
                     </span>
                   </button>
                 </div>
+                {onDelete && (
+                  <button 
+                    onClick={handleDelete}
+                    className="w-9 h-9 flex items-center justify-center rounded-full text-on-surface-variant/60 hover:bg-error-container hover:text-error transition-all"
+                    title="Delete drop"
+                  >
+                    <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

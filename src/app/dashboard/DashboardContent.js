@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { Plus, Search, Hash } from "lucide-react";
+import { Plus, Search, Hash, Image as ImageIcon, FileText } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
 import { useSearchParams } from "next/navigation";
 
@@ -15,6 +15,7 @@ function DashboardInner({ token }) {
   const [searchQuery, setSearchQuery] = useState("");
   const searchParams = useSearchParams();
   const selectedTag = searchParams.get("tag");
+  const selectedType = searchParams.get("type"); // e.g. URL, TEXT, IMAGE
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -67,12 +68,60 @@ function DashboardInner({ token }) {
     }
   };
 
+  const handleDeletePost = async (id) => {
+    try {
+      const res = await fetch(`/api/save?id=${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        await fetchPosts();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const isVisualPlatform = (urlString) => {
+    if (!urlString) return false;
+    try {
+      const host = new URL(urlString).hostname.toLowerCase();
+      const visualDomains = [
+        "youtube.com", "youtu.be",
+        "pinterest.com", "pin.it",
+        "instagram.com",
+        "vimeo.com",
+        "tiktok.com",
+        "imgur.com",
+        "giphy.com",
+        "unsplash.com",
+        "flickr.com"
+      ];
+      return visualDomains.some(domain => host.includes(domain));
+    } catch(e) {
+      return false;
+    }
+  };
+
   const filteredPosts = posts.filter(post => {
     // 1. Tag filter
     if (selectedTag && !post.tags?.some(tag => tag.name === selectedTag)) {
       return false;
     }
-    // 2. Search filter
+    // 2. Type filter
+    if (selectedType) {
+      if (selectedType === 'IMAGE') {
+        // Show direct IMAGE drops, plus any URLs pointing to known visual/media platforms
+        if (post.type !== 'IMAGE' && !(post.type === 'URL' && post.imageUrl && isVisualPlatform(post.content))) {
+          return false;
+        }
+      } else if (post.type !== selectedType) {
+        return false;
+      }
+    }
+    // 3. Search filter
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -134,6 +183,18 @@ function DashboardInner({ token }) {
           </div>
         )}
 
+        {selectedType && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-display font-semibold text-on-surface capitalize flex items-center gap-2">
+              {selectedType === 'IMAGE' ? <ImageIcon className="w-8 h-8 text-primary" /> : <FileText className="w-8 h-8 text-primary" />}
+              {selectedType === 'IMAGE' ? 'Images & Videos' : 'Notes'}
+            </h1>
+            <p className="text-on-surface-variant mt-1">
+              {filteredPosts.length} saved item{filteredPosts.length !== 1 ? 's' : ''} in this view.
+            </p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
              <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -147,7 +208,13 @@ function DashboardInner({ token }) {
 
                 {/* Render Posts */}
                 {filteredPosts.map((post) => (
-                  <ItemCard key={post.id} item={post} />
+                  <ItemCard 
+                    key={post.id} 
+                    item={post} 
+                    token={token}
+                    onDelete={handleDeletePost}
+                    onUpdate={fetchPosts}
+                  />
                 ))}
               </div>
             ) : (
@@ -157,7 +224,7 @@ function DashboardInner({ token }) {
                 </div>
                 <p className="text-lg">No drops found.</p>
                 <p className="text-sm opacity-70">
-                  {selectedTag ? `No items found in #${selectedTag}.` : 'Paste a link or note above to start saving.'}
+                  {selectedTag ? `No items found in #${selectedTag}.` : selectedType === 'IMAGE' ? 'No images or videos found.' : 'Paste a link or note above to start saving.'}
                 </p>
               </div>
             )}
