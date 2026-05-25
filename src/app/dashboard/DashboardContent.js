@@ -44,6 +44,7 @@ function DashboardInner({ token }) {
       setIsSaving(true);
       const urlToSave = inputValue.trim();
       setInputValue(""); // Clear input immediately for UX
+      setSearchQuery(""); // Clear search query so list refreshes showing all items
 
       try {
         const res = await fetch("/api/save", {
@@ -167,10 +168,11 @@ function DashboardInner({ token }) {
   );
 }
 
-export default function DashboardContent({ token }) {
+const DashboardContent = ({ token }) => {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background md:ml-64 pt-28 px-8">Loading...</div>}>
       <DashboardInner token={token} />
     </Suspense>
   );
-}
+};
+export default DashboardContent;
