@@ -15,7 +15,7 @@ export default function DashboardContent({ token }) {
 
   const fetchPosts = useCallback(async () => {
     try {
-      const res = await fetch("/api/posts", {
+      const res = await fetch("/api/save", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -48,7 +48,7 @@ export default function DashboardContent({ token }) {
       setInputValue(""); // Clear input immediately for UX
 
       try {
-        const res = await fetch("/api/posts", {
+        const res = await fetch("/api/save", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -75,7 +75,7 @@ export default function DashboardContent({ token }) {
     return (
       (post.caption && post.caption.toLowerCase().includes(q)) ||
       (post.url && post.url.toLowerCase().includes(q)) ||
-      (post.category?.name && post.category.name.toLowerCase().includes(q))
+      (post.tags && post.tags.some(tag => tag.name.toLowerCase().includes(q)))
     );
   });
 

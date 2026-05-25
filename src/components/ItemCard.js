@@ -30,12 +30,14 @@ export default function ItemCard({ item, isGhost }) {
   
   // Tag rendering logic
   const renderTags = () => {
-    if (!item.category?.name) return null;
+    if (!item.tags || item.tags.length === 0) return null;
     return (
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface via-surface/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2 justify-start items-end z-20">
-        <span className="px-3 py-1 bg-surface-container-low/80 backdrop-blur-md border border-outline-variant/50 rounded-full text-xs font-medium text-on-surface shadow-sm">
-          {item.category.name}
-        </span>
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-surface via-surface/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-wrap gap-2 justify-start items-end z-20">
+        {item.tags.map(tag => (
+          <span key={tag.id} className="px-3 py-1 bg-surface-container-low/80 backdrop-blur-md border border-outline-variant/50 rounded-full text-xs font-medium text-on-surface shadow-sm">
+            {tag.name}
+          </span>
+        ))}
       </div>
     );
   };

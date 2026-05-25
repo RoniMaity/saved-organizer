@@ -8,49 +8,41 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id        String      @id @default(uuid())
+  id        String   @id @default(cuid())
   name      String
-  email     String      @unique
+  email     String   @unique
   password  String
-  posts     PostSaved[]
-  categories Category[]
+  items     Item[]
 }
 
-model Category {
-  id      String      @id @default(uuid())
-  name    String
-  userId  String
-  user    User        @relation(fields: [userId], references: [id])
-  posts   PostSaved[]
-
-  @@unique([name, userId], name: "name_userId")
+enum ItemType {
+  URL
+  TEXT
+  IMAGE
 }
 
+model Item {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  type        ItemType
+  content     String
+  title       String?
+  description String?
+  summary     String?
+  imageUrl    String?
 
-model Media {
-  id     String @id @default(uuid())
-  type   String
-  url    String
-  postID String
-  post   PostSaved @relation(fields: [postID], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags        Tag[]
 }
 
-
-model PostSaved {
-  id        String   @id @default(uuid())
-  postUrl   String
-  postType  String
-  caption     String?
-  hashtags    String[]
-  userId    String
-  categoryId String
-  media     Media[]
-  user      User     @relation(fields: [userId], references: [id])
-  category  Category @relation(fields: [categoryId], references: [id])
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  items     Item[]
 }
-
-  
-

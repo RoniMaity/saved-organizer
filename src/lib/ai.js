@@ -6,24 +6,11 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function categorize(data) {
 const prompt = `
-You will be given Instagram post data in this exact format:
-[
-  [ "caption string here" ],
-  [ "hashtag1", "hashtag2", ... ]
-]
-Your task:
-Determine the single most accurate topic category that best represents the post using both the caption and hashtags.
-Output Rules:
-Output only one category
-Must be a single word or short phrase
-Example categories:
-Food, Travel, Fitness, Motivation, Fashion, Pets, Technology, Business, Nature, Sports, Art, Coding, Quotes, Lifestyle
-Do NOT provide explanations
-Do NOT output more than one category
+You are an automated categorization engine. Analyze the following content. 
+Return a strict JSON object containing a short 1-sentence summary and an array of 3-5 highly relevant tags. 
+Do not return markdown formatting, just raw JSON.
 Input:
 ${data}
-Output:
-Only the category name.
 `;
   try {
     const completion = await groq.chat.completions.create({
