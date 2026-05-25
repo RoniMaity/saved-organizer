@@ -22,11 +22,9 @@ export default function ItemCard({ item, isGhost }) {
     );
   }
 
-  // Determine Type
-  // Note: The old DB schema uses postType (video, image, sidecar) but for Unidrop it's URL, TEXT, IMAGE
-  // I will infer based on the item properties.
-  const type = item.postType?.toUpperCase() || (item.url ? "URL" : "TEXT");
-  const media = item.media?.[0];
+  // Determine Type directly from the new schema
+  const type = item.type || "TEXT";
+  const mediaUrl = item.imageUrl;
   
   // Tag rendering logic
   const renderTags = () => {
@@ -42,16 +40,19 @@ export default function ItemCard({ item, isGhost }) {
     );
   };
 
-  if (type === "URL" || type === "SIDECAR" || type === "VIDEO") {
-    // If it has media, show the hero image. Otherwise, it might just be a link card.
+  if (type === "URL") {
+    // Show the hero image. Otherwise, it might just be a link card.
+    let hostname = "";
+    try { hostname = new URL(item.content).hostname; } catch(e){}
+
     return (
       <div className="break-inside-avoid mb-4 inline-block w-full">
         <div className="relative bg-surface rounded-xl overflow-hidden border border-outline-variant/30 cursor-pointer group hover:scale-[1.02] hover:shadow-xl transition-all duration-300">
-          {media ? (
+          {mediaUrl ? (
             <div className="relative w-full aspect-video bg-surface-container-low">
               <img
-                src={media.url}
-                alt={item.caption || "Saved URL"}
+                src={mediaUrl}
+                alt={item.title || "Saved URL"}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -62,11 +63,11 @@ export default function ItemCard({ item, isGhost }) {
           )}
           <div className="p-4 bg-surface z-10 relative">
             <h3 className="font-semibold text-lg text-on-surface mb-1 line-clamp-2 leading-tight">
-              {item.caption || "Saved Link"}
+              {item.title || "Saved Link"}
             </h3>
-            {item.url && (
+            {hostname && (
               <p className="text-sm text-on-surface-variant truncate">
-                {new URL(item.url).hostname}
+                {hostname}
               </p>
             )}
           </div>
@@ -81,8 +82,8 @@ export default function ItemCard({ item, isGhost }) {
       <div className="break-inside-avoid mb-4 inline-block w-full">
         <div className="relative bg-surface rounded-xl overflow-hidden border border-outline-variant/30 cursor-pointer group hover:scale-[1.02] hover:shadow-xl transition-all duration-300">
            <img
-            src={media?.url || item.url}
-            alt={item.caption || "Saved Image"}
+            src={mediaUrl || item.content}
+            alt={item.title || "Saved Image"}
             className="w-full h-auto object-cover"
           />
           {renderTags()}
@@ -92,7 +93,7 @@ export default function ItemCard({ item, isGhost }) {
   }
 
   // TEXT / Default fallback
-  const isShortNote = (item.caption || "").length < 100;
+  const isShortNote = (item.content || "").length < 100;
   return (
     <div className="break-inside-avoid mb-4 inline-block w-full">
       <div className="relative bg-surface-container-low/50 rounded-xl p-6 border border-outline-variant/30 cursor-pointer group hover:scale-[1.02] hover:shadow-xl transition-all duration-300 min-h-[150px] flex flex-col justify-center">
@@ -101,7 +102,7 @@ export default function ItemCard({ item, isGhost }) {
           <span className="text-xs font-medium text-on-surface-variant">Note</span>
         </div>
         <p className={`text-on-surface leading-relaxed ${isShortNote ? 'text-2xl font-medium tracking-tight' : 'text-base'}`}>
-          {item.caption || item.text}
+          {item.content}
         </p>
         {renderTags()}
       </div>

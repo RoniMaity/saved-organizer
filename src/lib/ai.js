@@ -14,8 +14,9 @@ ${data}
 `;
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama3-8b-8192", // Groq's fast llama model
+      model: "llama-3.1-8b-instant", // Groq's updated fast llama model
       messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" }
     });
 
     return completion.choices[0].message.content.trim();

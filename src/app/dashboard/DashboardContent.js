@@ -1,17 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Search } from "lucide-react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { Plus, Search, Hash } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
+import { useSearchParams } from "next/navigation";
 
-export default function DashboardContent({ token }) {
+function DashboardInner({ token }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
-  // Filter state for search
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const selectedTag = searchParams.get("tag");
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -23,7 +26,6 @@ export default function DashboardContent({ token }) {
       });
       if (res.ok) {
         const data = await res.json();
-        // Assume API returns { posts: [...] } based on previous CategoryPageClient
         setPosts(data.posts || []);
       }
     } catch (err) {
@@ -39,10 +41,6 @@ export default function DashboardContent({ token }) {
 
   const handleKeyDown = async (e) => {
     if (e.key === "Enter" && inputValue.trim()) {
-      const isUrl = inputValue.startsWith("http://") || inputValue.startsWith("https://");
-      
-      // If it's a URL or we just want to save it as a text drop
-      // Trigger save
       setIsSaving(true);
       const urlToSave = inputValue.trim();
       setInputValue(""); // Clear input immediately for UX
@@ -58,7 +56,6 @@ export default function DashboardContent({ token }) {
         });
         
         if (res.ok) {
-          // Re-fetch to get the finalized item with category tags
           await fetchPosts();
         }
       } catch (err) {
@@ -70,11 +67,16 @@ export default function DashboardContent({ token }) {
   };
 
   const filteredPosts = posts.filter(post => {
+    // 1. Tag filter
+    if (selectedTag && !post.tags?.some(tag => tag.name === selectedTag)) {
+      return false;
+    }
+    // 2. Search filter
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      (post.caption && post.caption.toLowerCase().includes(q)) ||
-      (post.url && post.url.toLowerCase().includes(q)) ||
+      (post.title && post.title.toLowerCase().includes(q)) ||
+      (post.content && post.content.toLowerCase().includes(q)) ||
       (post.tags && post.tags.some(tag => tag.name.toLowerCase().includes(q)))
     );
   });
@@ -83,25 +85,25 @@ export default function DashboardContent({ token }) {
     <div className="min-h-screen bg-background">
       {/* Glassmorphic Top Bar */}
       <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 transition-all duration-300">
-        <div className="flex justify-between items-center px-4 md:px-8 py-4 max-w-[1440px] mx-auto w-full">
-          {/* Logo / Title */}
-          <div className="font-display text-2xl font-semibold tracking-tighter text-on-surface shrink-0 mr-4">
+        <div className="flex justify-between items-center px-4 md:px-8 py-4 mx-auto w-full md:pl-[272px]">
+          {/* Logo / Title (Hidden on desktop as it's in sidenav) */}
+          <div className="md:hidden font-display text-2xl font-semibold tracking-tighter text-on-surface shrink-0 mr-4">
             Unidrop
           </div>
 
           {/* Search / Save Input */}
-          <div className="flex-grow max-w-2xl mx-4">
+          <div className="flex-grow max-w-3xl mx-4">
             <div className="relative group w-full">
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => {
                   setInputValue(e.target.value);
-                  setSearchQuery(e.target.value); // Real-time search if not hitting enter
+                  setSearchQuery(e.target.value); 
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Search or paste anything..."
-                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-full py-3 pl-12 pr-6 text-base md:text-lg text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all"
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-full py-3 pl-12 pr-6 text-base md:text-lg text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all shadow-sm"
               />
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-on-surface-variant group-focus-within:text-primary transition-colors" />
             </div>
@@ -117,7 +119,20 @@ export default function DashboardContent({ token }) {
       </header>
 
       {/* Main Stage: Masonry Grid */}
-      <main className="pt-28 px-4 md:px-8 pb-20 max-w-[1440px] mx-auto min-h-screen">
+      <main className="pt-28 px-4 md:px-8 md:ml-64 pb-20 mx-auto min-h-screen">
+        
+        {selectedTag && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-display font-semibold text-on-surface capitalize flex items-center gap-2">
+              <Hash className="w-8 h-8 text-primary" />
+              {selectedTag}
+            </h1>
+            <p className="text-on-surface-variant mt-1">
+              {filteredPosts.length} saved item{filteredPosts.length !== 1 ? 's' : ''} in this collection.
+            </p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
              <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -140,12 +155,22 @@ export default function DashboardContent({ token }) {
                   <Search className="w-8 h-8 opacity-50" />
                 </div>
                 <p className="text-lg">No drops found.</p>
-                <p className="text-sm opacity-70">Paste a link or note above to start saving.</p>
+                <p className="text-sm opacity-70">
+                  {selectedTag ? `No items found in #${selectedTag}.` : 'Paste a link or note above to start saving.'}
+                </p>
               </div>
             )}
           </>
         )}
       </main>
     </div>
+  );
+}
+
+export default function DashboardContent({ token }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background md:ml-64 pt-28 px-8">Loading...</div>}>
+      <DashboardInner token={token} />
+    </Suspense>
   );
 }

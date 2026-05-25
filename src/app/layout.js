@@ -17,6 +17,8 @@ export const metadata = {
   description: "Cross-platform, minimalist memory hub organized by AI.",
 };
 
+import SideNav from "@/components/SideNav";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
@@ -27,6 +29,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-on-surface`}
       >
+        <SideNav />
         {children}
       </body>
     </html>
