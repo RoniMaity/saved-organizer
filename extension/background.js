@@ -50,11 +50,12 @@ chrome.action.onClicked.addListener((tab) => {
 // Helper to save to Next.js API
 async function saveToMind(payload, tabId) {
   // Tell content script we are starting the capture animation
+  let toastSupported = true;
   try {
     await chrome.tabs.sendMessage(tabId, { action: "saving" });
   } catch (err) {
-    console.warn("Could not send 'saving' message to content script (tab might be a protected chrome:// page):", err);
-    return;
+    console.warn("Could not send 'saving' message to content script (tab might be a protected chrome:// page or not reloaded):", err);
+    toastSupported = false;
   }
 
   const knownDomains = ["localhost", "127.0.0.1", "10.254.207.208", "192.168.143.208"];
@@ -140,6 +141,7 @@ async function saveToMind(payload, tabId) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+    console.log(`Sending save request to ${baseUrl}/api/save...`);
     const res = await fetch(`${baseUrl}/api/save`, {
       method: "POST",
       headers: headers,
@@ -150,13 +152,19 @@ async function saveToMind(payload, tabId) {
     clearTimeout(timeoutId);
 
     if (res.ok) {
-      await chrome.tabs.sendMessage(tabId, { action: "saved" });
+      console.log("Item saved successfully to Unidrop.");
+      if (toastSupported) {
+        await chrome.tabs.sendMessage(tabId, { action: "saved" }).catch(() => {});
+      }
     } else {
       const errData = await res.json().catch(() => ({}));
-      await chrome.tabs.sendMessage(tabId, { 
-        action: "error", 
-        message: errData.error || "Save failed" 
-      });
+      console.warn("Save failed with status:", res.status, errData.error);
+      if (toastSupported) {
+        await chrome.tabs.sendMessage(tabId, { 
+          action: "error", 
+          message: errData.error || "Save failed" 
+        }).catch(() => {});
+      }
     }
   } catch (err) {
     console.error("Unidrop Save Error:", err);
@@ -164,9 +172,11 @@ async function saveToMind(payload, tabId) {
     if (err.name === "AbortError") {
       errorMsg = "Request timed out. Server took too long to respond.";
     }
-    await chrome.tabs.sendMessage(tabId, { 
-      action: "error", 
-      message: errorMsg 
-    });
+    if (toastSupported) {
+      await chrome.tabs.sendMessage(tabId, { 
+        action: "error", 
+        message: errorMsg 
+      }).catch(() => {});
+    }
   }
 }
