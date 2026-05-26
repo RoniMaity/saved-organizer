@@ -62,33 +62,35 @@ async function saveToMind(payload, tabId) {
   let baseUrl = "http://localhost:3000";
 
   // Method 1: Try chrome.cookies.getAll (highly robust, searches all domains)
-  try {
-    const cookies = await new Promise((resolve) => {
-      chrome.cookies.getAll({ name: "token" }, resolve);
-    });
-    console.log("Cookies found via getAll:", cookies ? cookies.length : 0);
-    if (cookies && cookies.length > 0) {
-      const match = cookies.find(c => {
-        const domain = c.domain.toLowerCase();
-        return knownDomains.some(d => domain.includes(d));
+  if (typeof chrome !== 'undefined' && chrome.cookies) {
+    try {
+      const cookies = await new Promise((resolve) => {
+        chrome.cookies.getAll({ name: "token" }, resolve);
       });
-      if (match) {
-        token = match.value;
-        let domain = match.domain;
-        if (domain.startsWith(".")) domain = domain.substring(1);
-        
-        const protocol = match.secure ? "https" : "http";
-        const host = domain.includes(":") ? domain : `${domain}:3000`;
-        baseUrl = `${protocol}://${host}`;
-        console.log("Successfully retrieved token via cookies.getAll from domain:", domain, "baseUrl:", baseUrl);
+      console.log("Cookies found via getAll:", cookies ? cookies.length : 0);
+      if (cookies && cookies.length > 0) {
+        const match = cookies.find(c => {
+          const domain = c.domain.toLowerCase();
+          return knownDomains.some(d => domain.includes(d));
+        });
+        if (match) {
+          token = match.value;
+          let domain = match.domain;
+          if (domain.startsWith(".")) domain = domain.substring(1);
+          
+          const protocol = match.secure ? "https" : "http";
+          const host = domain.includes(":") ? domain : `${domain}:3000`;
+          baseUrl = `${protocol}://${host}`;
+          console.log("Successfully retrieved token via cookies.getAll from domain:", domain, "baseUrl:", baseUrl);
+        }
       }
+    } catch (e) {
+      console.warn("Failed to check cookies via getAll:", e);
     }
-  } catch (e) {
-    console.warn("Failed to check cookies via getAll:", e);
   }
 
   // Method 2: Fallback to chrome.cookies.get for specific origins if still no token
-  if (!token) {
+  if (!token && typeof chrome !== 'undefined' && chrome.cookies) {
     const knownOrigins = [
       "http://localhost:3000",
       "http://127.0.0.1:3000",
@@ -134,11 +136,18 @@ async function saveToMind(payload, tabId) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
+    // Add a 10-second timeout to prevent the toast from hanging forever
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const res = await fetch(`${baseUrl}/api/save`, {
       method: "POST",
       headers: headers,
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (res.ok) {
       await chrome.tabs.sendMessage(tabId, { action: "saved" });
@@ -151,9 +160,13 @@ async function saveToMind(payload, tabId) {
     }
   } catch (err) {
     console.error("Unidrop Save Error:", err);
+    let errorMsg = "Server offline or connection refused.";
+    if (err.name === "AbortError") {
+      errorMsg = "Request timed out. Server took too long to respond.";
+    }
     await chrome.tabs.sendMessage(tabId, { 
       action: "error", 
-      message: "Server offline or connection refused." 
+      message: errorMsg 
     });
   }
 }
