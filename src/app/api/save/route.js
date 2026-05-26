@@ -58,11 +58,24 @@ export async function POST(req) {
     return NextResponse.json({ error: "Rate limit exceeded. Try again in a minute." }, { status: 429 });
   }
 
-  const token = req.headers.get("authorization")?.split(" ")[1];
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authHeader = req.headers.get("authorization");
+  console.log("=== API SAVE POST AUTH ===");
+  console.log("Authorization Header:", authHeader);
+  console.log("User-Agent:", req.headers.get("user-agent"));
+  console.log("Origin:", req.headers.get("origin"));
+
+  const token = authHeader?.split(" ")[1];
+  if (!token) {
+    console.log("Auth fail: No token found in authorization header");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   
   const user = verifyJWT(token);
-  if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  if (!user) {
+    console.log("Auth fail: verifyJWT(token) returned null for token:", token);
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
+  console.log("Auth success: User verified:", user);
 
   try {
     const body = await req.json();

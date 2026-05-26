@@ -24,6 +24,10 @@ export default function SignInPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         router.push("/dashboard");
       } else {
         const data = await res.json();
@@ -93,7 +97,7 @@ export default function SignInPage() {
         </form>
 
         <div className="mt-6 text-center text-sm text-on-surface-variant">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-primary font-medium hover:underline">
             Sign Up
           </Link>

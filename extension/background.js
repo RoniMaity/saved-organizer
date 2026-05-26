@@ -57,21 +57,73 @@ async function saveToMind(payload, tabId) {
     return;
   }
 
-  // Retrieve token from the localhost:3000 browser cookie directly
+  const knownDomains = ["localhost", "127.0.0.1", "10.254.207.208", "192.168.143.208"];
   let token = "";
+  let baseUrl = "http://localhost:3000";
+
+  // Method 1: Try chrome.cookies.getAll (highly robust, searches all domains)
   try {
-    const cookie = await new Promise((resolve) => {
-      chrome.cookies.get({ url: "http://localhost:3000", name: "token" }, resolve);
+    const cookies = await new Promise((resolve) => {
+      chrome.cookies.getAll({ name: "token" }, resolve);
     });
-    if (cookie) {
-      token = cookie.value;
-    } else {
-      // Fallback to storage
-      const storage = await chrome.storage.local.get("token");
-      token = storage.token || "";
+    console.log("Cookies found via getAll:", cookies ? cookies.length : 0);
+    if (cookies && cookies.length > 0) {
+      const match = cookies.find(c => {
+        const domain = c.domain.toLowerCase();
+        return knownDomains.some(d => domain.includes(d));
+      });
+      if (match) {
+        token = match.value;
+        let domain = match.domain;
+        if (domain.startsWith(".")) domain = domain.substring(1);
+        
+        const protocol = match.secure ? "https" : "http";
+        const host = domain.includes(":") ? domain : `${domain}:3000`;
+        baseUrl = `${protocol}://${host}`;
+        console.log("Successfully retrieved token via cookies.getAll from domain:", domain, "baseUrl:", baseUrl);
+      }
     }
-  } catch (cookieErr) {
-    console.warn("Error reading cookies or storage:", cookieErr);
+  } catch (e) {
+    console.warn("Failed to check cookies via getAll:", e);
+  }
+
+  // Method 2: Fallback to chrome.cookies.get for specific origins if still no token
+  if (!token) {
+    const knownOrigins = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://10.254.207.208:3000",
+      "http://192.168.143.208:3000"
+    ];
+    for (const origin of knownOrigins) {
+      try {
+        const cookie = await new Promise((resolve) => {
+          chrome.cookies.get({ url: origin, name: "token" }, resolve);
+        });
+        if (cookie && cookie.value) {
+          token = cookie.value;
+          baseUrl = origin;
+          console.log("Successfully retrieved token via cookies.get from origin:", origin);
+          break;
+        }
+      } catch (e) {
+        console.warn(`Failed to check cookie for ${origin}:`, e);
+      }
+    }
+  }
+
+  // Method 3: Fallback to storage if still no token
+  if (!token) {
+    try {
+      const storage = await chrome.storage.local.get(["token", "baseUrl"]);
+      if (storage.token) {
+        token = storage.token;
+        baseUrl = storage.baseUrl || "http://localhost:3000";
+        console.log("Successfully retrieved token from chrome.storage.local, baseUrl:", baseUrl);
+      }
+    } catch (storageErr) {
+      console.warn("Error reading fallback storage:", storageErr);
+    }
   }
 
   try {
@@ -82,7 +134,7 @@ async function saveToMind(payload, tabId) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch("http://localhost:3000/api/save", {
+    const res = await fetch(`${baseUrl}/api/save`, {
       method: "POST",
       headers: headers,
       body: JSON.stringify(payload)

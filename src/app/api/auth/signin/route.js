@@ -34,7 +34,7 @@ export async function POST(req) {
   const token = signJWT({ userId: user.id, email: user.email });
 
   const res = NextResponse.json(
-    { message: "Sign-in successful.", user: { id: user.id, email: user.email } },
+    { message: "Sign-in successful.", token, user: { id: user.id, email: user.email } },
     { status: 200 }
   );
 

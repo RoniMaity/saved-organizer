@@ -25,6 +25,10 @@ export default function SignUpPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         router.push("/dashboard");
       } else {
         const data = await res.json();

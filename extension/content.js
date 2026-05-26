@@ -11,13 +11,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Synchronize token if user is active on localhost:3000
-if (window.location.origin === "http://localhost:3000") {
+// Synchronize token if user is active on any known development domain
+const knownOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://10.254.207.208:3000",
+  "http://192.168.143.208:3000"
+];
+
+if (knownOrigins.includes(window.location.origin)) {
   const syncToken = () => {
-    const token = localStorage.getItem("token");
+    // Check localStorage first
+    let token = localStorage.getItem("token");
+    
+    // If not found in localStorage, check webpage cookies directly
+    if (!token) {
+      const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
+      if (match) {
+        token = decodeURIComponent(match[1]);
+      }
+    }
+
     if (token) {
-      chrome.storage.local.set({ token }, () => {
-        console.log("Unidrop extension successfully synced auth token from dashboard!");
+      chrome.storage.local.set({ 
+        token: token,
+        baseUrl: window.location.origin
+      }, () => {
+        console.log("Unidrop extension successfully synced auth token from " + window.location.origin);
       });
     }
   };

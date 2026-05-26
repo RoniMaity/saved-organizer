@@ -11,7 +11,14 @@
     "cookies"
   ],
   "host_permissions": [
-    "http://localhost:3000/*"
+    "http://localhost/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1/*",
+    "http://127.0.0.1:3000/*",
+    "http://10.254.207.208/*",
+    "http://10.254.207.208:3000/*",
+    "http://192.168.143.208/*",
+    "http://192.168.143.208:3000/*"
   ],
   "background": {
     "service_worker": "background.js"

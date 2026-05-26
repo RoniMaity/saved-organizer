@@ -37,6 +37,12 @@ function DashboardInner({ token }) {
   }, [token]);
 
   useEffect(() => {
+    if (token) {
+      localStorage.setItem("token", token);
+    }
+  }, [token]);
+
+  useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
