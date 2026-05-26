@@ -47,17 +47,58 @@ chrome.action.onClicked.addListener((tab) => {
   saveToMind(payload, tab.id);
 });
 
+// Helper to dynamically inject content script if not already loaded
+async function ensureContentScriptInjected(tabId) {
+  try {
+    // Ping content script first to see if it's already active
+    const response = await new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tabId, { action: "ping" }, (res) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(res);
+        }
+      });
+    });
+    return response && response.status === "alive";
+  } catch (err) {
+    // If not active, establish scripting injection
+    try {
+      if (typeof chrome !== 'undefined' && chrome.scripting) {
+        await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ["content.js"]
+        });
+        console.log(`Dynamically injected content.js into tab ${tabId}`);
+        // Give a tiny moment for listeners to register
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return true;
+      }
+      return false;
+    } catch (injectErr) {
+      console.warn(`Failed to dynamically inject content.js:`, injectErr);
+      return false; // E.g., protected browser system pages
+    }
+  }
+}
+
 // Helper to save to Next.js API
 async function saveToMind(payload, tabId) {
-  // Tell content script we are starting the capture animation
-  let toastSupported = true;
-  try {
-    await chrome.tabs.sendMessage(tabId, { action: "saving" });
-  } catch (err) {
-    console.warn("Could not send 'saving' message to content script (tab might be a protected chrome:// page or not reloaded):", err);
-    toastSupported = false;
-  }
+  // 1. Kick off UI injection & "saving" message in the background (DO NOT block the save process!)
+  let toastSupported = false;
+  const uiPromise = (async () => {
+    try {
+      toastSupported = await ensureContentScriptInjected(tabId);
+      if (toastSupported) {
+        await chrome.tabs.sendMessage(tabId, { action: "saving" });
+      }
+    } catch (err) {
+      console.warn("UI Message animation skipped/failed:", err);
+      toastSupported = false;
+    }
+  })();
 
+  // 2. Fetch credentials and call Next.js API immediately
   const knownDomains = ["localhost", "127.0.0.1", "10.254.207.208", "192.168.143.208"];
   let token = "";
   let baseUrl = "http://localhost:3000";
@@ -151,6 +192,9 @@ async function saveToMind(payload, tabId) {
 
     clearTimeout(timeoutId);
 
+    // Ensure that content script injection/messaging has resolved (without blocking if it failed)
+    await uiPromise.catch(() => {});
+
     if (res.ok) {
       console.log("Item saved successfully to Unidrop.");
       if (toastSupported) {
@@ -172,6 +216,9 @@ async function saveToMind(payload, tabId) {
     if (err.name === "AbortError") {
       errorMsg = "Request timed out. Server took too long to respond.";
     }
+    
+    // Ensure that UI check has finished before sending final error status
+    await uiPromise.catch(() => {});
     if (toastSupported) {
       await chrome.tabs.sendMessage(tabId, { 
         action: "error", 

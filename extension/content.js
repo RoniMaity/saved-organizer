@@ -2,6 +2,10 @@
 
 // Listen for save events from background.js
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "ping") {
+    sendResponse({ status: "alive" });
+    return true;
+  }
   if (message.action === "saving") {
     injectToast("saving", "Saving to Mind...");
   } else if (message.action === "saved") {

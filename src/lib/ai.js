@@ -14,8 +14,8 @@ ${data}
 `;
   try {
     // 5-second timeout for the AI call to prevent hanging the entire POST request
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("AI generation timed out")), 5000)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AI generation timed out")), 10000)
     );
 
     const completionPromise = groq.chat.completions.create({
