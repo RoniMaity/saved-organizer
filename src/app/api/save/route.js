@@ -104,11 +104,18 @@ export async function POST(req) {
          description = `Instagram drop saved from Unidrop.`;
 
          try {
+           const controller = new AbortController();
+           const timeoutId = setTimeout(() => controller.abort(), 3000);
+
            const embedResponse = await fetch(`https://www.instagram.com/p/${postCode}/embed/captioned/`, {
              headers: { 
                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' 
-             }
+             },
+             signal: controller.signal
            });
+           
+           clearTimeout(timeoutId);
+
            if (embedResponse.ok) {
              const html = await embedResponse.text();
              const $embed = cheerio.load(html);
@@ -132,7 +139,16 @@ export async function POST(req) {
          dataForGrok = `Instagram Post URL: ${content}\nTitle/Author: ${title}\nCaption Content: ${description}`;
        } else {
          try {
-           const response = await fetch(content, { headers: { 'User-Agent': 'Unidrop-Bot/1.0' } });
+           const controller = new AbortController();
+           const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+           const response = await fetch(content, { 
+             headers: { 'User-Agent': 'Unidrop-Bot/1.0' },
+             signal: controller.signal
+           });
+
+           clearTimeout(timeoutId);
+
            const html = await response.text();
            const $ = cheerio.load(html);
            
